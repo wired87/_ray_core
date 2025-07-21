@@ -27,7 +27,7 @@ class RayAdminBase:
         print("RayBase initialized")
 
     def init_ray(self):
-        os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
+        #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
 
         for _ in range(10):
             try:
@@ -45,8 +45,8 @@ class RayAdminBase:
         LOGGER.info(f"ray initialized {ray.is_initialized()}")
 
     def start_head(self):
-        include_dashboard = "true" if OS_NAME == "nt" else "false"
-        subprocess.run(["ray", "start", "--head", f"--port={self.ray_port}", f"--include-dashboard={include_dashboard}"], check=True)
+        #include_dashboard = "true" if OS_NAME == "nt" else "false"
+        subprocess.run(["ray", "start", "--head", f"--port={self.ray_port}"], check=True)
 
     def stop_ray(self):
         subprocess.run(["ray", "stop", "--force"], check=True)
