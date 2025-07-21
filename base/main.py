@@ -15,7 +15,10 @@ OS_NAME = os.name
 class RayAdminBase:
 
     def __init__(self, env_id):
-        self.logs_dir = r"C:\Users\wired\OneDrive\Desktop\BestBrain\tmp\ray\session_*\logs" if OS_NAME == "nt" else "/tmp/_ray_core/session_*/logs"
+        self.logs_dir = r"C:\Users\wired\OneDrive\Desktop\BestBrain\tmp\_ray_core\session_*\logs" if OS_NAME == "nt" else "/tmp/_ray_core/session_*/logs"
+        os.makedirs(self.logs_dir, exist_ok=True)
+        os.environ["TMPDIR"] = "/tmp/_ray_core"
+
         self.include_dashboard = OS_NAME != "nt"
         self.local_mode = OS_NAME == "nt"
         self.ip = socket.gethostbyname(socket.gethostname())
@@ -26,7 +29,7 @@ class RayAdminBase:
         print("RayBase initialized")
 
     def init_ray(self):
-        os.environ["RAY_DISABLE_DASHBOARD"] = "1" if OS_NAME == "nt" else "0"
+        os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
 
         for _ in range(10):
             try:
