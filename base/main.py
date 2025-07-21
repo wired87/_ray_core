@@ -34,7 +34,7 @@ class RayAdminBase:
                     ignore_reinit_error=True,
                     local_mode=self.local_mode,
                     include_dashboard=self.include_dashboard,
-                    address=f"{self.ip}:{self.ray_port}",
+                    address=f"auto",
                 )
                 break
             except Exception as e:
