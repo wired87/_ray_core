@@ -15,9 +15,7 @@ OS_NAME = os.name
 class RayAdminBase:
 
     def __init__(self, env_id):
-        self.logs_dir = r"C:\Users\wired\OneDrive\Desktop\BestBrain\tmp\_ray_core\session_*\logs" if OS_NAME == "nt" else "/tmp/_ray_core/session_*/logs"
-        os.makedirs(self.logs_dir, exist_ok=True)
-        os.environ["TMPDIR"] = "/tmp/_ray_core"
+        self.logs_dir = r"C:\Users\wired\OneDrive\Desktop\BestBrain\tmp\ray\session_*\logs" if OS_NAME == "nt" else "/tmp/ray/session_*/logs"
 
         self.include_dashboard = OS_NAME != "nt"
         self.local_mode = OS_NAME == "nt"
