@@ -22,6 +22,7 @@ class RayAdminBase:
         self.ray_port = 6379
         self.http_port = 8001
         self.env_id = env_id
+        self.disable = "0" if OS_NAME == "nt" else "1"
         print("RayBase initialized")
 
     def init_ray(self):
