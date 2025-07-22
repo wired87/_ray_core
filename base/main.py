@@ -25,6 +25,17 @@ class RayAdminBase:
         self.env_id = env_id
         self.disable = "0" if OS_NAME == "nt" else "1"
         print("RayBase initialized")
+    
+    
+    def main(self):
+        self.start_head()
+        self.init_ray()
+        self.start_serve()
+        self.run_serve()
+        self.status()
+        self.list_tasks()
+        self.list_actors()
+        self.timeline()
 
     def init_ray(self):
         #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
@@ -85,3 +96,12 @@ class RayAdminBase:
 
     def status(self):
         subprocess.run(["ray", "status"])
+        
+        
+    def list_tasks(self):
+        subprocess.run(["ray", "list", "tasks"])
+    def list_actors(self):
+        subprocess.run(["ray", "list", "actors"])
+
+    def timeline(self):
+        ray.timeline(filename="timeline.json")
