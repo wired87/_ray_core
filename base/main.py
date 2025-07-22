@@ -33,7 +33,7 @@ class RayAdminBase:
             try:
                 ray.init(
                     ignore_reinit_error=True,
-                    local_mode=self.local_mode,
+                    local_mode=False,
                     include_dashboard=self.include_dashboard,
                     address=f"auto",
                 )
