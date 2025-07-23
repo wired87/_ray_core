@@ -55,6 +55,15 @@ class RayAdminBase:
 
         LOGGER.info(f"ray initialized {ray.is_initialized()}")
 
+
+    def list_actors(self):
+        actors = ray.util.list_named_actors(all_namespaces=True)
+        print(f"Aktive Remote-Instanzen: {len(actors)}")
+        for actor in actors:
+            print(actor)  # Zeigt Name oder Handle
+
+
+
     def start_head(self):
         #include_dashboard = "true" if OS_NAME == "nt" else "false"
         subprocess.run(["ray", "start", "--head", f"--port={self.ray_port}"], check=True)
@@ -100,8 +109,7 @@ class RayAdminBase:
         
     def list_tasks(self):
         subprocess.run(["ray", "list", "tasks"])
-    def list_actors(self):
-        subprocess.run(["ray", "list", "actors"])
+
 
     def timeline(self):
         ray.timeline(filename="timeline.json")
