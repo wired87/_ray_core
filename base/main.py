@@ -70,6 +70,9 @@ class RayAdminBase:
 
     def stop_ray(self):
         subprocess.run(["ray", "stop", "--force"], check=True)
+    def memory(self):
+        #ray memory --stats-only
+        subprocess.run(["ray", "memory", "--stats-only"], check=True)
 
     def start_serve(self):
         for i in range(10):
