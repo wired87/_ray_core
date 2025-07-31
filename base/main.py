@@ -97,7 +97,7 @@ class RayAdminBase:
             HeadServer.options(
                 name=self.env_id
             ).bind(),
-            route_prefix=f"/{self.env_id}"
+            route_prefix=f"/"
         )
         print("✅ serve.run() started successfully")
 
