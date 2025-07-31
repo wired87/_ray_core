@@ -93,12 +93,10 @@ class RayAdminBase:
                 time.sleep(2)
 
     def run_serve(self):
-        serve.run(
-            HeadServer.options(
-                name=self.env_id
-            ).bind(),
-            route_prefix=f"/"
-        )
+        HeadServer.options(
+            name=self.env_id,
+            route_prefix=f"/",
+        ).deploy()
         print("✅ serve.run() started successfully")
 
     def stop(self):
