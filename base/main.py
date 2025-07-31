@@ -11,6 +11,14 @@ from cluster_nodes.head import HeadServer
 from utils.logger import LOGGER
 
 OS_NAME = os.name
+##
+
+
+
+
+
+
+
 
 class RayAdminBase:
 
@@ -27,11 +35,14 @@ class RayAdminBase:
         print("RayBase initialized")
     
     
-    def main(self):
+    def main(self, use_serve=False):
         self.start_head()
         self.init_ray()
-        self.start_serve()
-        self.run_serve()
+
+        if use_serve is True:
+            self.start_serve()
+            self.run_serve()
+
         self.status()
         self.list_tasks()
         self.list_actors()
@@ -93,10 +104,12 @@ class RayAdminBase:
                 time.sleep(2)
 
     def run_serve(self):
+        serve.run(
         HeadServer.options(
             name=self.env_id,
-            route_prefix=f"/",
-        ).deploy()
+        ).bind(),
+        route_prefix="/"
+        )
         print("✅ serve.run() started successfully")
 
     def stop(self):
