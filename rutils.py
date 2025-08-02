@@ -34,9 +34,6 @@ class WorkerUtils:
 
 
 
-
-
-
 @ray.remote
 class LoggerWorker:
 

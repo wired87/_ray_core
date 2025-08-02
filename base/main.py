@@ -2,46 +2,63 @@ import os
 import socket
 import subprocess
 import time
+import asyncio
 
+import aiohttp
 import ray
+import requests
+import websockets
 from ray import serve
 from ray.exceptions import RayActorError
 
 from cluster_nodes.head import HeadServer
+from cluster_nodes.server.stat_handler import ClusterCreator
+from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 
 OS_NAME = os.name
-##
 
-
-
-
-
-
-
+USER_ID = os.environ.get("USER_ID")
+ENV_ID = os.environ.get("ENV_ID")
 
 class RayAdminBase:
 
-    def __init__(self, env_id):
-        self.logs_dir = r"C:\Users\wired\OneDrive\Desktop\BestBrain\tmp\ray\session_*\logs" if OS_NAME == "nt" else "/tmp/ray/session_*/logs"
-
+    def __init__(self):
+        self.logs_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_*\logs" if OS_NAME == "nt" else "/tmp/ray/session_*/logs"
+        #os.makedirs(self.logs_dir, exist_ok=True)
+        self.database = f"users/{USER_ID}/env/{ENV_ID}"
         self.include_dashboard = OS_NAME != "nt"
         self.local_mode = OS_NAME == "nt"
         self.ip = socket.gethostbyname(socket.gethostname())
         self.ray_port = 6379
         self.http_port = 8001
-        self.env_id = env_id
+        self.env_id = ENV_ID
         self.disable = "0" if OS_NAME == "nt" else "1"
+
+        self.host:HOST_TYPE = {}
+        self.cluster_creator = ClusterCreator(
+            database=self.database,
+            host=self.host,
+            head=True
+        )
+
+
+
         print("RayBase initialized")
     
     
-    def main(self, use_serve=False):
+    def main(self, use_serve=True):
         self.start_head()
         self.init_ray()
+
+        # ceate global actors
+        self.cluster_creator.create_global_actors()
 
         if use_serve is True:
             self.start_serve()
             self.run_serve()
+            self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
+        self.cluster_creator.load_ray_remotes()
 
         self.status()
         self.list_tasks()
@@ -105,10 +122,13 @@ class RayAdminBase:
 
     def run_serve(self):
         serve.run(
-        HeadServer.options(
-            name=self.env_id,
-        ).bind(),
-        route_prefix="/"
+            HeadServer.options(
+                name=self.env_id,
+                ).bind(
+                    host=self.host
+                ),
+            name=ENV_ID,
+            route_prefix="/"
         )
         print("✅ serve.run() started successfully")
 
@@ -127,3 +147,92 @@ class RayAdminBase:
 
     def timeline(self):
         ray.timeline(filename="timeline.json")
+
+
+
+    def test_connection_sync(self):
+        ws_type = "ws"  # or "wss"
+        trgt_vm_ws_port = 8001
+        trgt_vm_ip = "127.0.0.1"  # or your VM IP
+        trgt_vm_endpoint = f"root/{ENV_ID}"  # Replace with your TEST_ENV_ID
+        trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
+
+        async def connect():
+            _try = 0
+            while _try < 30:
+                try:
+                    ws = await websockets.connect(trgt_vm_domain)
+                    if ws is not None:
+                        return ws
+                except Exception as e:
+                    print(f"[RELAY2CLUSTER] Fehler beim Verbindungsaufbau Versuch {_try + 1}: {e}")
+                    _try += 1
+                    time.sleep(3)
+
+            print("[RELAY2CLUSTER] Maximale Anzahl an Versuchen erreicht. Verbindung fehlgeschlagen.")
+            return False
+
+        # Ein Event Loop starten, um die asynchrone Funktion auszuführen
+        return asyncio.run(connect())
+
+
+    def test_post(self):
+
+        response = requests.post(trgt_vm_domain, {"init": "hi"})
+        print("response", response)
+        print("response.text", response.text)  # Um die Fehlermeldung von FastAPI zu sehen
+        print("response.json()", response.json())  # Wenn die Antwort JSON ist
+
+    async def send_post_request(self, url: str, payload: dict):
+        """
+        Sendet einen asynchronen POST-Request mit einem JSON-Body.
+        """
+
+        # Eine Client-Session erstellen, um die Anfrage zu senden
+        async with aiohttp.ClientSession() as session:
+            try:
+                # Den POST-Request senden. Der 'json' Parameter handhabt die Serialisierung
+                # des Python-Dicts und setzt den Content-Type Header korrekt.
+                async with session.post(url, json=payload) as response:
+                    print(f"Status Code: {response.status}")
+
+                    # Den Response-Body als JSON parsen
+                    response_json = await response.json()
+                    print("Response Body:", response_json)
+
+                    # Bei einem Fehler einen Exception auslösen
+                    response.raise_for_status()
+
+                    return response_json
+
+            except aiohttp.ClientError as e:
+                print(f"Ein Fehler ist aufgetreten: {e}")
+                return None
+if __name__ == "__main__":
+    rb=RayAdminBase()
+    ws_type = "http"  # or "wss"
+    trgt_vm_ws_port = 8001
+    trgt_vm_ip = "127.0.0.1"  # or your VM IP
+    trgt_vm_endpoint = f"root/{ENV_ID}"  # Replace with your TEST_ENV_ID
+    trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
+
+    status_payload = {  # InboundPayload
+                "data": {
+                    "type": "start"
+                },
+                "type": "state_change",
+            }
+
+    auth_payload = {
+        "type": "auth",
+        "data": {
+            "key": ENV_ID,
+            "session_id": "xxx",
+        }
+    }
+    asyncio.run(
+        rb.send_post_request(
+            url=trgt_vm_domain,
+            payload=status_payload
+        )
+    )
