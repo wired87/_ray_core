@@ -11,21 +11,22 @@ import websockets
 from ray import serve
 from ray.exceptions import RayActorError
 
+from _ray_core.base._ray_utils import RayUtils
 from cluster_nodes.head import HeadServer
 from cluster_nodes.server.stat_handler import ClusterCreator
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 
 OS_NAME = os.name
-
+import dotenv
+dotenv.load_dotenv()
 USER_ID = os.environ.get("USER_ID")
 ENV_ID = os.environ.get("ENV_ID")
 
-class RayAdminBase:
+class RayAdminBase(RayUtils):
 
     def __init__(self):
-        self.logs_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_*\logs" if OS_NAME == "nt" else "/tmp/ray/session_*/logs"
-        #os.makedirs(self.logs_dir, exist_ok=True)
+        super().__init__()
         self.database = f"users/{USER_ID}/env/{ENV_ID}"
         self.include_dashboard = OS_NAME != "nt"
         self.local_mode = OS_NAME == "nt"
@@ -58,19 +59,21 @@ class RayAdminBase:
             self.start_serve()
             self.run_serve()
             self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
+
         self.cluster_creator.load_ray_remotes()
 
         self.status()
         self.list_tasks()
-        self.list_actors()
+        self.list_actors(print_actors=True)
         self.timeline()
 
     def init_ray(self):
         #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
-
+        #os.environ["RAY_LOGGING_CONFIG_ENCODING"] = "JSON"
         for _ in range(10):
             try:
                 ray.init(
+                    #_temp_dir=self.logs_dir,
                     ignore_reinit_error=True,
                     local_mode=False,
                     include_dashboard=self.include_dashboard,
@@ -84,17 +87,9 @@ class RayAdminBase:
         LOGGER.info(f"ray initialized {ray.is_initialized()}")
 
 
-    def list_actors(self):
-        actors = ray.util.list_named_actors(all_namespaces=True)
-        print(f"Aktive Remote-Instanzen: {len(actors)}")
-        for actor in actors:
-            print(actor)  # Zeigt Name oder Handle
-
-
-
     def start_head(self):
         #include_dashboard = "true" if OS_NAME == "nt" else "false"
-        subprocess.run(["ray", "start", "--head", f"--port={self.ray_port}"], check=True)
+        subprocess.run(["ray", "start", "--head", f"--port={self.ray_port}", f"--temp-dir={self.ray_assets_dir}"], check=True)
 
     def stop_ray(self):
         subprocess.run(["ray", "stop", "--force"], check=True)
@@ -202,37 +197,42 @@ class RayAdminBase:
 
                     # Bei einem Fehler einen Exception auslösen
                     response.raise_for_status()
-
                     return response_json
 
             except aiohttp.ClientError as e:
                 print(f"Ein Fehler ist aufgetreten: {e}")
                 return None
-if __name__ == "__main__":
-    rb=RayAdminBase()
-    ws_type = "http"  # or "wss"
-    trgt_vm_ws_port = 8001
-    trgt_vm_ip = "127.0.0.1"  # or your VM IP
-    trgt_vm_endpoint = f"root/{ENV_ID}"  # Replace with your TEST_ENV_ID
-    trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
 
-    status_payload = {  # InboundPayload
-                "data": {
-                    "type": "start"
-                },
-                "type": "state_change",
-            }
+rb=RayAdminBase()
+ws_type = "http"  # or "wss"
+trgt_vm_ws_port = 8001
+trgt_vm_ip = "127.0.0.1"  # or your VM IP
+trgt_vm_endpoint = f"root/{ENV_ID}"  # Replace with your TEST_ENV_ID
+trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
 
-    auth_payload = {
-        "type": "auth",
-        "data": {
-            "key": ENV_ID,
-            "session_id": "xxx",
+status_payload = {  # InboundPayload
+            "data": {
+                "type": "start"
+            },
+            "type": "state_change",
         }
+
+auth_payload = {
+    "type": "auth",
+    "data": {
+        "key": ENV_ID,
+        "session_id": "xxx",
     }
+}
+
+if __name__ == "__main__":
+    print("ENV_ID", ENV_ID)
     asyncio.run(
         rb.send_post_request(
             url=trgt_vm_domain,
             payload=status_payload
         )
     )
+
+# status_payload
+# auth_payload
