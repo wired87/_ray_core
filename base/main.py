@@ -60,7 +60,7 @@ class RayAdminBase(RayUtils):
             self.run_serve()
             self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
 
-        self.cluster_creator.load_ray_remotes()
+        #self.cluster_creator.load_ray_remotes()
 
         self.status()
         self.list_tasks()
