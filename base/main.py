@@ -182,7 +182,7 @@ class RayAdminBase(RayUtils):
         """
         Sendet einen asynchronen POST-Request mit einem JSON-Body.
         """
-
+        print("url:", url)
         # Eine Client-Session erstellen, um die Anfrage zu senden
         async with aiohttp.ClientSession() as session:
             try:
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     asyncio.run(
         rb.send_post_request(
             url=trgt_vm_domain,
-            payload=status_payload
+            payload=auth_payload
         )
     )
 
