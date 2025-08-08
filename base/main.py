@@ -12,22 +12,20 @@ from ray import serve
 from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
+from app_utils import USER_ID, ENV_ID, FB_DB_ROOT
 from cluster_nodes.head import HeadServer
 from cluster_nodes.server.stat_handler import ClusterCreator
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 
 OS_NAME = os.name
-import dotenv
-dotenv.load_dotenv()
-USER_ID = os.environ.get("USER_ID")
-ENV_ID = os.environ.get("ENV_ID")
+
 
 class RayAdminBase(RayUtils):
 
     def __init__(self):
         super().__init__()
-        self.database = f"users/{USER_ID}/env/{ENV_ID}"
+        self.database = FB_DB_ROOT
         self.include_dashboard = OS_NAME != "nt"
         self.local_mode = OS_NAME == "nt"
         self.ip = socket.gethostbyname(socket.gethostname())
@@ -42,9 +40,6 @@ class RayAdminBase(RayUtils):
             host=self.host,
             head=True
         )
-
-
-
         print("RayBase initialized")
     
     
@@ -66,6 +61,7 @@ class RayAdminBase(RayUtils):
         self.list_tasks()
         self.list_actors(print_actors=True)
         self.timeline()
+        self.get_session_dir()
 
     def init_ray(self):
         #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
@@ -73,7 +69,6 @@ class RayAdminBase(RayUtils):
         for _ in range(10):
             try:
                 ray.init(
-                    #_temp_dir=self.logs_dir,
                     ignore_reinit_error=True,
                     local_mode=False,
                     include_dashboard=self.include_dashboard,
@@ -212,7 +207,7 @@ trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}
 
 status_payload = {  # InboundPayload
             "data": {
-                "type": "start"
+                "type": "start",
             },
             "type": "state_change",
         }
@@ -225,8 +220,21 @@ auth_payload = {
     }
 }
 
-if __name__ == "__main__":
-    print("ENV_ID", ENV_ID)
+def test_db_worker():
+    asyncio.run(
+        rb.send_post_request(
+            url=trgt_vm_domain,
+            payload={  # InboundPayload
+            "data": {
+                "type": "db_test",
+            },
+            "type": "db_test",
+        }
+        )
+    )
+
+
+def activate():
     asyncio.run(
         rb.send_post_request(
             url=trgt_vm_domain,
@@ -234,5 +242,18 @@ if __name__ == "__main__":
         )
     )
 
-# status_payload
-# auth_payload
+    asyncio.run(
+        rb.send_post_request(
+            url=trgt_vm_domain,
+            payload=status_payload
+        )
+    )
+
+
+if __name__ == "__main__":
+    print("ENV_ID", ENV_ID)
+    activate()
+
+
+# test_db_worker
+# activate
