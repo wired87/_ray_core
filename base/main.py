@@ -57,6 +57,8 @@ class RayAdminBase(RayUtils):
 
         self.cluster_creator.load_ray_remotes()
 
+        self.host["state_handler"].start.remote()
+
         self.status()
         self.list_tasks()
         self.list_actors(print_actors=True)
