@@ -9,14 +9,6 @@ class RayUtils:
         os.makedirs(self.ray_assets_dir, exist_ok=True)
         #os.makedirs(os.path.join(self.ray_assets_dir, "session_latest"), exist_ok=True)
 
-    def get_session_dir(self):
-        session_id = os.environ.get("RAY_SESSION_DIR")
-        if session_id is None:
-            print("No Session ID set...")
-
-        print("RAY_SESSION_DIR:", session_id)
-        return session_id
-
 
     def list_actors(self, print_actors=False):
         actors = ray.util.list_named_actors(all_namespaces=True)

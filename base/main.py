@@ -61,7 +61,6 @@ class RayAdminBase(RayUtils):
         self.list_tasks()
         self.list_actors(print_actors=True)
         self.timeline()
-        self.get_session_dir()
 
     def init_ray(self):
         #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
