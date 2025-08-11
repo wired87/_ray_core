@@ -14,7 +14,7 @@ from ray.exceptions import RayActorError
 from _ray_core.base._ray_utils import RayUtils
 from app_utils import USER_ID, ENV_ID, FB_DB_ROOT
 from cluster_nodes.head import HeadServer
-from cluster_nodes.server.stat_handler import ClusterCreator
+from cluster_nodes.server.cluster_creator import ClusterCreator
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 
@@ -56,8 +56,6 @@ class RayAdminBase(RayUtils):
             self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
 
         self.cluster_creator.load_ray_remotes()
-
-        self.host["state_handler"].start.remote()
 
         self.status()
         self.list_tasks()
