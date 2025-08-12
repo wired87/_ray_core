@@ -114,7 +114,7 @@ class RayAdminBase(RayUtils):
             HeadServer.options(
                 name=self.env_id,
                 ).bind(
-                    host=self.host
+                    host=self.cluster_creator.host.copy()
                 ),
             name=ENV_ID,
             route_prefix="/"
@@ -219,34 +219,13 @@ auth_payload = {
     }
 }
 
-def test_db_worker():
-    asyncio.run(
-        rb.send_post_request(
-            url=trgt_vm_domain,
-            payload={  # InboundPayload
-            "data": {
-                "type": "db_test",
-            },
-            "type": "db_test",
-        }
-        )
-    )
 
 
 def activate():
-    asyncio.run(
-        rb.send_post_request(
-            url=trgt_vm_domain,
-            payload=auth_payload
-        )
-    )
-
-    asyncio.run(
-        rb.send_post_request(
-            url=trgt_vm_domain,
-            payload=status_payload
-        )
-    )
+    response = requests.post(trgt_vm_domain, json=auth_payload)
+    print(f"Auth response: {response}-{response.json()}")
+    response = requests.post(trgt_vm_domain, json=status_payload)
+    print(f"State Change response: {response}-{response.json()}")
 
 
 if __name__ == "__main__":
