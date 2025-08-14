@@ -12,9 +12,8 @@ from ray import serve
 from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
-from app_utils import USER_ID, ENV_ID, FB_DB_ROOT
+from app_utils import HEAD_SERVER_NAME
 from cluster_nodes.head import HeadServer
-from cluster_nodes.server.cluster_creator import ClusterCreator
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 
@@ -25,37 +24,25 @@ class RayAdminBase(RayUtils):
 
     def __init__(self):
         super().__init__()
-        self.database = FB_DB_ROOT
         self.include_dashboard = OS_NAME != "nt"
         self.local_mode = OS_NAME == "nt"
         self.ip = socket.gethostbyname(socket.gethostname())
         self.ray_port = 6379
         self.http_port = 8001
-        self.env_id = ENV_ID
         self.disable = "0" if OS_NAME == "nt" else "1"
 
         self.host:HOST_TYPE = {}
-        self.cluster_creator = ClusterCreator(
-            database=self.database,
-            host=self.host,
-            head=True
-        )
+
         print("RayBase initialized")
     
     
-    def main(self, use_serve=True):
+    def main(self):
         self.start_head()
         self.init_ray()
 
-        # ceate global actors
-        self.cluster_creator.create_global_actors()
-
-        if use_serve is True:
-            self.start_serve()
-            self.run_serve()
-            self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
-
-        self.cluster_creator.load_ray_remotes()
+        self.start_serve()
+        self.run_serve()
+        self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
 
         self.status()
         self.list_tasks()
@@ -87,6 +74,7 @@ class RayAdminBase(RayUtils):
 
     def stop_ray(self):
         subprocess.run(["ray", "stop", "--force"], check=True)
+
     def memory(self):
         #ray memory --stats-only
         subprocess.run(["ray", "memory", "--stats-only"], check=True)
@@ -112,11 +100,9 @@ class RayAdminBase(RayUtils):
     def run_serve(self):
         serve.run(
             HeadServer.options(
-                name=self.env_id,
-                ).bind(
-                    host=self.cluster_creator.host.copy()
-                ),
-            name=ENV_ID,
+                name=HEAD_SERVER_NAME,
+                ).bind(),
+            name=HEAD_SERVER_NAME,
             route_prefix="/"
         )
         print("✅ serve.run() started successfully")
@@ -196,6 +182,19 @@ class RayAdminBase(RayUtils):
             except aiohttp.ClientError as e:
                 print(f"Ein Fehler ist aufgetreten: {e}")
                 return None
+
+
+    def create_static_docker_env_vars(self):
+        return {
+            "DOMAIN": "bestbrain.tech",
+            "DATASET_ID": "QCOMPS",
+            "GCP_ID": os.environ.get("GCP_PROJECT_ID"),
+            "FIREBASE_RTDB": os.environ.get("FIREBASE_RTDB"),
+
+        }
+
+
+
 
 rb=RayAdminBase()
 ws_type = "http"  # or "wss"
