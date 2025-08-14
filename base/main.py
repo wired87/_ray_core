@@ -2,18 +2,16 @@ import os
 import socket
 import subprocess
 import time
-import asyncio
 
-import aiohttp
 import ray
 import requests
-import websockets
 from ray import serve
 from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
-from app_utils import HEAD_SERVER_NAME
+from app_utils import HEAD_SERVER_NAME, FIELD_TYPE
 from cluster_nodes.head import HeadServer
+from cluster_nodes.server.cluster_creator import ClusterCreator
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 
@@ -32,18 +30,24 @@ class RayAdminBase(RayUtils):
         self.disable = "0" if OS_NAME == "nt" else "1"
 
         self.host:HOST_TYPE = {}
-
+        self.cluster_creator = ClusterCreator(
+            host=self.host,
+            head=True
+        )
         print("RayBase initialized")
     
     
-    def main(self):
+    def main(self, data):
+        """
+        Creates a clustr based on received cfg
+        """
         self.start_head()
         self.init_ray()
 
         self.start_serve()
         self.run_serve()
-        self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
-
+        self.host["head"] = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
+        self.cluster_creator.
         self.status()
         self.list_tasks()
         self.list_actors(print_actors=True)
@@ -103,7 +107,7 @@ class RayAdminBase(RayUtils):
                 name=HEAD_SERVER_NAME,
                 ).bind(),
             name=HEAD_SERVER_NAME,
-            route_prefix="/"
+            route_prefix=f"/{FIELD_TYPE}"
         )
         print("✅ serve.run() started successfully")
 
@@ -124,83 +128,20 @@ class RayAdminBase(RayUtils):
         ray.timeline(filename="timeline.json")
 
 
-
-    def test_connection_sync(self):
-        ws_type = "ws"  # or "wss"
-        trgt_vm_ws_port = 8001
-        trgt_vm_ip = "127.0.0.1"  # or your VM IP
-        trgt_vm_endpoint = f"root/{ENV_ID}"  # Replace with your TEST_ENV_ID
-        trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
-
-        async def connect():
-            _try = 0
-            while _try < 30:
-                try:
-                    ws = await websockets.connect(trgt_vm_domain)
-                    if ws is not None:
-                        return ws
-                except Exception as e:
-                    print(f"[RELAY2CLUSTER] Fehler beim Verbindungsaufbau Versuch {_try + 1}: {e}")
-                    _try += 1
-                    time.sleep(3)
-
-            print("[RELAY2CLUSTER] Maximale Anzahl an Versuchen erreicht. Verbindung fehlgeschlagen.")
-            return False
-
-        # Ein Event Loop starten, um die asynchrone Funktion auszuführen
-        return asyncio.run(connect())
-
-
-    def test_post(self):
-
-        response = requests.post(trgt_vm_domain, {"init": "hi"})
-        print("response", response)
-        print("response.text", response.text)  # Um die Fehlermeldung von FastAPI zu sehen
-        print("response.json()", response.json())  # Wenn die Antwort JSON ist
-
-    async def send_post_request(self, url: str, payload: dict):
-        """
-        Sendet einen asynchronen POST-Request mit einem JSON-Body.
-        """
-        print("url:", url)
-        # Eine Client-Session erstellen, um die Anfrage zu senden
-        async with aiohttp.ClientSession() as session:
-            try:
-                # Den POST-Request senden. Der 'json' Parameter handhabt die Serialisierung
-                # des Python-Dicts und setzt den Content-Type Header korrekt.
-                async with session.post(url, json=payload) as response:
-                    print(f"Status Code: {response.status}")
-
-                    # Den Response-Body als JSON parsen
-                    response_json = await response.json()
-                    print("Response Body:", response_json)
-
-                    # Bei einem Fehler einen Exception auslösen
-                    response.raise_for_status()
-                    return response_json
-
-            except aiohttp.ClientError as e:
-                print(f"Ein Fehler ist aufgetreten: {e}")
-                return None
-
-
     def create_static_docker_env_vars(self):
         return {
             "DOMAIN": "bestbrain.tech",
             "DATASET_ID": "QCOMPS",
             "GCP_ID": os.environ.get("GCP_PROJECT_ID"),
             "FIREBASE_RTDB": os.environ.get("FIREBASE_RTDB"),
-
         }
-
-
 
 
 rb=RayAdminBase()
 ws_type = "http"  # or "wss"
 trgt_vm_ws_port = 8001
 trgt_vm_ip = "127.0.0.1"  # or your VM IP
-trgt_vm_endpoint = f"root/{ENV_ID}"  # Replace with your TEST_ENV_ID
+trgt_vm_endpoint = f"root/{FIELD_TYPE}"  # Replace with your TEST_ENV_ID
 trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
 
 status_payload = {  # InboundPayload
@@ -210,11 +151,19 @@ status_payload = {  # InboundPayload
             "type": "state_change",
         }
 
+vars_dict = {
+    "DOMAIN": os.environ.get("DOMAIN"),
+    "USER_ID": os.environ.get("USER_ID"),
+    "GCP_ID": os.environ.get("GCP_ID"),
+    "ENV_ID": os.environ.get("ENV_ID"),
+    "INSTANCE": os.environ.get("FIREBASE_RTDB"),
+    "STIM_STRENGTH": os.environ.get("STIM_STRENGTH"),
+}
+
 auth_payload = {
     "type": "auth",
     "data": {
-        "key": ENV_ID,
-        "session_id": "xxx",
+        "env_vars": vars_dict
     }
 }
 
@@ -228,7 +177,6 @@ def activate():
 
 
 if __name__ == "__main__":
-    print("ENV_ID", ENV_ID)
     activate()
 
 
