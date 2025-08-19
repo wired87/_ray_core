@@ -9,14 +9,12 @@ from ray import serve
 from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
-from app_utils import HEAD_SERVER_NAME, FIELD_TYPE
+from app_utils import SESSION_ID, HEAD_SERVER_NAME, LOGGING_DIR
 from cluster_nodes.head import HeadServer
-from cluster_nodes.server.cluster_creator import ClusterCreator
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 
 OS_NAME = os.name
-
 
 class RayAdminBase(RayUtils):
 
@@ -28,41 +26,33 @@ class RayAdminBase(RayUtils):
         self.ray_port = 6379
         self.http_port = 8001
         self.disable = "0" if OS_NAME == "nt" else "1"
-
         self.host:HOST_TYPE = {}
-        self.cluster_creator = ClusterCreator(
-            host=self.host,
-            head=True
-        )
         print("RayBase initialized")
-    
-    
-    def main(self, data):
-        """
-        Creates a clustr based on received cfg
-        """
-        self.start_head()
-        self.init_ray()
 
-        self.start_serve()
-        self.run_serve()
-        self.host["head"] = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
-        self.cluster_creator.
+    def print_actor_states(self):
         self.status()
         self.list_tasks()
         self.list_actors(print_actors=True)
         self.timeline()
 
-    def init_ray(self):
+    def init_ray(self, namespace_name=None):
         #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
         #os.environ["RAY_LOGGING_CONFIG_ENCODING"] = "JSON"
+        print("init ray")
         for _ in range(10):
             try:
                 ray.init(
                     ignore_reinit_error=True,
                     local_mode=False,
-                    include_dashboard=self.include_dashboard,
+                    include_dashboard=True,
                     address=f"auto",
+                    #namespace=namespace_name,
+                    logging_config=ray.LoggingConfig(
+                        encoding="JSON",
+                        log_level="INFO",
+                        additional_log_standard_attrs=['name']
+                    ),
+                    #_tmp_dir=LOGGING_DIR,
                 )
                 break
             except Exception as e:
@@ -72,26 +62,28 @@ class RayAdminBase(RayUtils):
         LOGGER.info(f"ray initialized {ray.is_initialized()}")
 
 
+
     def start_head(self):
         #include_dashboard = "true" if OS_NAME == "nt" else "false"
         subprocess.run(["ray", "start", "--head", f"--port={self.ray_port}", f"--temp-dir={self.ray_assets_dir}"], check=True)
 
     def stop_ray(self):
-        subprocess.run(["ray", "stop", "--force"], check=True)
+        try:
+            subprocess.run(["ray", "stop", "--force"], check=True)
+        except Exception as e:
+            print(f"error stop: {e}")
 
     def memory(self):
         #ray memory --stats-only
         subprocess.run(["ray", "memory", "--stats-only"], check=True)
 
-    def start_serve(self):
+    def start_serve(
+            self,
+    ):
         for i in range(10):
             try:
                 print(f"[Try {i + 1}] Starting serve.run()")
-                serve.start(
-                    http_options={"host": "0.0.0.0", "port": self.http_port},
-                    detached=True,
-                    disable_dashboard=os.name == "nt"
-                )
+                self.init_serve()
                 print("✅ serve.start() started successfully")
                 break
             except RayActorError as e:
@@ -101,15 +93,33 @@ class RayAdminBase(RayUtils):
                 print("🔥 Unexpected error in serve.run():", e)
                 time.sleep(2)
 
-    def run_serve(self):
+
+    def init_serve(self):
+        serve.start(
+            http_options={"host": "0.0.0.0", "port": self.http_port},
+            detached=True,
+            disable_dashboard=os.name == "nt",
+        )
+
+
+    def create_head_server(
+            self,
+            name,
+    ):
+        # Communicates directly with relay
+        # cases: init and state changes
+        # SESSION_ID = env_id
         serve.run(
             HeadServer.options(
                 name=HEAD_SERVER_NAME,
                 ).bind(),
             name=HEAD_SERVER_NAME,
-            route_prefix=f"/{FIELD_TYPE}"
+            route_prefix=f"/{SESSION_ID}"
         )
+        ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
+        self.host["head"] = ref
         print("✅ serve.run() started successfully")
+        return ref
 
     def stop(self):
         ray.shutdown()
@@ -122,7 +132,6 @@ class RayAdminBase(RayUtils):
         
     def list_tasks(self):
         subprocess.run(["ray", "list", "tasks"])
-
 
     def timeline(self):
         ray.timeline(filename="timeline.json")
@@ -141,7 +150,7 @@ rb=RayAdminBase()
 ws_type = "http"  # or "wss"
 trgt_vm_ws_port = 8001
 trgt_vm_ip = "127.0.0.1"  # or your VM IP
-trgt_vm_endpoint = f"root/{FIELD_TYPE}"  # Replace with your TEST_ENV_ID
+trgt_vm_endpoint = f"/{SESSION_ID}/root/"  # Replace with your TEST_ENV_ID
 trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
 
 status_payload = {  # InboundPayload
@@ -167,6 +176,12 @@ auth_payload = {
     }
 }
 
+deploy_payload = {
+    "type": "deploy",
+    "data": {
+        "stim_cfg": {}
+    }
+}
 
 
 def activate():

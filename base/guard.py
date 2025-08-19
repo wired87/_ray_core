@@ -1,14 +1,12 @@
 import logging
 import os
 
+import ray
 from fastapi import Body
 from ray import serve
-
-from _ray_core.base._ray_utils import RayUtils
-from _ray_core.base.main import RayAdminBase
-from app_utils import APP
+from app_utils import APP, FB_DB_ROOT
+from cluster_nodes.server.types import HOST_TYPE
 from utils.id_gen import generate_id
-
 
 @serve.deployment(
     num_replicas=1,
@@ -20,12 +18,15 @@ class Guard:
     """
     Guard of a docker container.
     Handles creation and storage of new anmespaces
-
     """
-    def __init__(self):
+    def __init__(
+            self,
+            host,
+    ):
+        self.id = "GUARD"
         self.logger = logging.getLogger("ray.serve")
         self.logger.info("Initializing HeadDeployment...")
-        self.ray_admin = RayAdminBase()
+
         self.namespace = {
             "example_id": {
                 "object_store": None,
@@ -33,7 +34,20 @@ class Guard:
             }
         }
 
-    @APP.post("/root/guard")
+        self.host = host
+        self.database = FB_DB_ROOT
+
+        # upsert online state db
+        ray.get(
+            self.host["db_worker"].iter_upsert(
+                path=f"/ADMIN_META/{self.id}",
+                attrs={
+                    f"state": "ONLINE"
+                }
+            )
+        )
+
+    @APP.post("/")
     async def post(self, payload: dict = Body()):
         self.logger.info(f"Guard: post message registered:{payload}")
         try:
@@ -45,7 +59,6 @@ class Guard:
         return {"status": "error", "data": data}
 
 
-
     async def handle_extern_message(self, payload):
         """
         Entry for all incoming & validated ws (or local) messages
@@ -54,15 +67,11 @@ class Guard:
             self.logger.info(f"MSG FROM EXTERM RECEIVED: {payload}")
             payload_type = payload["type"]
             data = payload.get("data")
-            if payload_type == "auth" or (self.session_id is None or self.local_key is None):
+            if payload_type == "auth":
                 return self._init_hs_relay(data)
 
-            elif payload_type == "deploy":
-                self.logger.info("Statechange detected")
-                # create cluster in new namespace
-                self.ray_admin.main(data)
+            ##############
 
-                return {"status": "success", "msg": f"Applied {state} to workers", "type": "status_success_distribution"}
             else:
                 self.logger.info(f"invalid request {payload_type}")
                 return {"response": "Handshake pong"}
@@ -73,28 +82,58 @@ class Guard:
         """
         :param msg: key, sesion_id
         """
+
         self.logger.info("Guard: Init request received")
-        key = None
-        if "session_id" in data and "key" in data:  # and "env_vars" in data
 
-            key = data["key"]
-            session_id = data.get("session_id")
-            if session_id is not None:
-                # Overwrite session_id
-                self.session_id = data["session_id"]
+        if "realy_id" in data and "key" in data:  # and "env_vars" in data
+            # Handshake - Key to save
+            self.extern_key = data["key"]
+            realy_id = data["realy_id"]
+            self.intern_key = f"h{generate_id(20)}w{generate_id(15)}x"
+            if realy_id == os.environ["RELAY_ID"]:
+                return dict(
+                    response_key=self.intern_key,
+                    received_key=self.extern_key,
+                )
+        else:
+            self.logger.info("Could not authenticate request:")
+            return {
+                "message": "Invalid request"
+            }
 
-                # distribute to db_worker
-                os.environ["SESSION_ID"] = self.session_id
+    """def deploy_single_namespace(self, data):
+        # node_cfg : pixel_utils, node_utils : list[id] : attrs, env_content.
+        node_cfg = data["node_utils"]
+        env_content = node_cfg["env_content"]
 
-                # Build sys from given params
-                self.build_env(data)
-
-            self.local_key = generate_id()
-
-            # todo distribute session_id to db
-        return dict(
-            response_key=self.local_key,
-            session_id=self.session_id,
-            key=key,
-            actor_info=self.get_actor_info()
+        self.deploy_workers(
+            env_content,
         )
+
+    def deploy_workers(
+            self,
+            env_content,
+    ):
+        self.logger.info("Deploy Workers")
+        namespace_name = env_content["SESSION_ID"]
+
+        host = self.create_host_store(env_content)
+
+        ### MAIN ###
+        self.logger.info(f"Init {namespace_name} in ray ")
+        ray.get_actor(name="namespace_creator").create_namespace_main.remote(
+            host.copy(),
+            namespace_name,
+        )
+
+
+
+    def create_host_store(self, env_content):
+        host: HOST_TYPE = {}
+
+        # Load env vars in
+        host["store"] = ray.put(env_content)
+        return host
+
+
+"""
