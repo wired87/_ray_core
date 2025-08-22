@@ -27,6 +27,11 @@ class RayAdminBase(RayUtils):
         self.http_port = 8001
         self.disable = "0" if OS_NAME == "nt" else "1"
         self.host:HOST_TYPE = {}
+
+        self.stop_ray()
+        self.start_head()
+        self.init_ray()
+        self.init_serve()
         print("RayBase initialized")
 
     def print_actor_states(self):
@@ -37,7 +42,7 @@ class RayAdminBase(RayUtils):
 
     def init_ray(self, namespace_name=None):
         #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
-        #os.environ["RAY_LOGGING_CONFIG_ENCODING"] = "JSON"
+        os.environ["RAY_LOGGING_CONFIG_ENCODING"] = "JSON"
         print("init ray")
         for _ in range(10):
             try:
@@ -105,6 +110,7 @@ class RayAdminBase(RayUtils):
     def create_head_server(
             self,
             name,
+            attrs
     ):
         # Communicates directly with relay
         # cases: init and state changes
@@ -117,7 +123,7 @@ class RayAdminBase(RayUtils):
             route_prefix=f"/{SESSION_ID}"
         )
         ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
-        self.host["head"] = ref
+        self.host["HEAD"] = ref
         print("✅ serve.run() started successfully")
         return ref
 

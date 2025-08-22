@@ -1,5 +1,9 @@
 import os
 import ray
+from ray import serve
+from ray.util.state import list_actors, list_workers
+
+from app_utils import HEAD_SERVER_NAME
 
 
 class RayUtils:
@@ -23,3 +27,35 @@ class RayUtils:
             for actor in actors:
                 print(actor)  # Zeigt Name oder Handle
         return actors
+
+
+    def get_ray_node_infos(self, id_map=None):
+        all_actors = list_actors(detail=True)
+        all_workers = list_workers(detail=True)
+
+        worker_pid_map = {worker.pid: worker for worker in all_workers}
+        struct = {}
+
+        for actor in all_actors:
+            # Verarbeite nur Actors, die einen Namen und eine PID haben.
+            if actor.name and actor.pid:
+                # Finde den passenden Worker.
+                corresponding_worker = worker_pid_map.get(actor.pid)
+
+                # Wenn ein passender Worker gefunden wurde...
+                if corresponding_worker:
+                    if id_map is not None and len(id_map):
+                        aname = actor.name
+                        if aname in id_map or HEAD_SERVER_NAME in aname:
+                            #print(f"Include {actor.name}")
+                            struct[actor.name] = {
+                                "actor": actor,
+                                "worker": corresponding_worker
+                            }
+                    else:
+                        struct[actor.name] = {
+                            "actor": actor,
+                            "worker": corresponding_worker
+                        }
+        return struct
+

@@ -18,5 +18,5 @@ class TestBase(RayAdminBase):
 
         self.start_serve(namespace)
         self.create_head_server()
-        self.host["head"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
+        self.host["HEAD"] = serve.get_deployment_handle(ENV_ID, app_name=ENV_ID)
 

@@ -39,7 +39,7 @@ class Guard:
 
         # upsert online state db
         ray.get(
-            self.host["db_worker"].iter_upsert(
+            self.host["DB_WORKER"].iter_upsert(
                 path=f"/ADMIN_META/{self.id}",
                 attrs={
                     f"state": "ONLINE"
