@@ -9,7 +9,7 @@ from ray import serve
 from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
-from app_utils import SESSION_ID, HEAD_SERVER_NAME, LOGGING_DIR
+from app_utils import SESSION_ID, HEAD_SERVER_NAME
 from cluster_nodes.head import HeadServer
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
@@ -23,16 +23,17 @@ class RayAdminBase(RayUtils):
         self.include_dashboard = OS_NAME != "nt"
         self.local_mode = OS_NAME == "nt"
         self.ip = socket.gethostbyname(socket.gethostname())
-        self.ray_port = 6379
-        self.http_port = 8001
         self.disable = "0" if OS_NAME == "nt" else "1"
         self.host:HOST_TYPE = {}
 
+
+        print("RayBase initialized")
+
+    def init_ray_process(self):
         self.stop_ray()
         self.start_head()
         self.init_ray()
         self.init_serve()
-        print("RayBase initialized")
 
     def print_actor_states(self):
         self.status()
@@ -70,7 +71,8 @@ class RayAdminBase(RayUtils):
 
     def start_head(self):
         #include_dashboard = "true" if OS_NAME == "nt" else "false"
-        subprocess.run(["ray", "start", "--head", f"--port={self.ray_port}", f"--temp-dir={self.ray_assets_dir}"], check=True)
+        ray_port = 6379
+        subprocess.run(["ray", "start", "--head", f"--port={ray_port}", f"--temp-dir={self.ray_assets_dir}"], check=True)
 
     def stop_ray(self):
         try:
@@ -100,8 +102,9 @@ class RayAdminBase(RayUtils):
 
 
     def init_serve(self):
+        http_port = 8001
         serve.start(
-            http_options={"host": "0.0.0.0", "port": self.http_port},
+            http_options={"host": "0.0.0.0", "port": http_port},
             detached=True,
             disable_dashboard=os.name == "nt",
         )
@@ -151,20 +154,11 @@ class RayAdminBase(RayUtils):
             "FIREBASE_RTDB": os.environ.get("FIREBASE_RTDB"),
         }
 
-
-rb=RayAdminBase()
 ws_type = "http"  # or "wss"
 trgt_vm_ws_port = 8001
 trgt_vm_ip = "127.0.0.1"  # or your VM IP
 trgt_vm_endpoint = f"/{SESSION_ID}/root/"  # Replace with your TEST_ENV_ID
 trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
-
-status_payload = {  # InboundPayload
-            "data": {
-                "type": "start",
-            },
-            "type": "state_change",
-        }
 
 vars_dict = {
     "DOMAIN": os.environ.get("DOMAIN"),
@@ -178,7 +172,7 @@ vars_dict = {
 auth_payload = {
     "type": "auth",
     "data": {
-        "env_vars": vars_dict
+        "key": SESSION_ID
     }
 }
 
@@ -189,17 +183,19 @@ deploy_payload = {
     }
 }
 
+state_payload = {  # InboundPayload
+    "data": {
+        "type": "start",
+    },
+    "type": "state_change",
+}
 
 def activate():
     response = requests.post(trgt_vm_domain, json=auth_payload)
     print(f"Auth response: {response}-{response.json()}")
-    response = requests.post(trgt_vm_domain, json=status_payload)
+    response = requests.post(trgt_vm_domain, json=state_payload)
     print(f"State Change response: {response}-{response.json()}")
 
 
 if __name__ == "__main__":
     activate()
-
-
-# test_db_worker
-# activate
