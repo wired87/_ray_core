@@ -13,6 +13,7 @@ from app_utils import SESSION_ID, HEAD_SERVER_NAME
 from cluster_nodes.head import HeadServer
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
+from utils.run_subprocess import exec_cmd
 
 OS_NAME = os.name
 
@@ -52,13 +53,11 @@ class RayAdminBase(RayUtils):
                     local_mode=False,
                     include_dashboard=True,
                     address=f"auto",
-                    #namespace=namespace_name,
                     logging_config=ray.LoggingConfig(
                         encoding="JSON",
                         log_level="INFO",
                         additional_log_standard_attrs=['name']
                     ),
-                    #_tmp_dir=LOGGING_DIR,
                 )
                 break
             except Exception as e:
@@ -70,9 +69,10 @@ class RayAdminBase(RayUtils):
 
 
     def start_head(self):
-        #include_dashboard = "true" if OS_NAME == "nt" else "false"
         ray_port = 6379
-        subprocess.run(["ray", "start", "--head", f"--port={ray_port}", f"--temp-dir={self.ray_assets_dir}"], check=True)
+        cmd = ["ray", "start", "--head", f"--port={ray_port}", f"--temp-dir={self.ray_assets_dir}"]
+        exec_cmd(cmd)
+        print("Started Head")
 
     def stop_ray(self):
         try:
