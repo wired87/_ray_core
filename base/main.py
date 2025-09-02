@@ -76,13 +76,13 @@ class RayAdminBase(RayUtils):
 
     def stop_ray(self):
         try:
-            subprocess.run(["ray", "stop", "--force"], check=True)
+            exec_cmd(["ray", "stop", "--force"])
         except Exception as e:
             print(f"error stop: {e}")
 
     def memory(self):
         #ray memory --stats-only
-        subprocess.run(["ray", "memory", "--stats-only"], check=True)
+        exec_cmd(["ray", "memory", "--stats-only"])
 
     def start_serve(
             self,
@@ -115,9 +115,6 @@ class RayAdminBase(RayUtils):
             name,
             attrs
     ):
-        # Communicates directly with relay
-        # cases: init and state changes
-        # SESSION_ID = env_id
         serve.run(
             HeadServer.options(
                 name=HEAD_SERVER_NAME,
@@ -136,11 +133,11 @@ class RayAdminBase(RayUtils):
 
 
     def status(self):
-        subprocess.run(["ray", "status"])
+        exec_cmd(["ray", "status"])
         
         
     def list_tasks(self):
-        subprocess.run(["ray", "list", "tasks"])
+        exec_cmd(["ray", "list", "tasks"])
 
     def timeline(self):
         ray.timeline(filename="timeline.json")
