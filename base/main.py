@@ -120,8 +120,9 @@ class RayAdminBase(RayUtils):
                 name=HEAD_SERVER_NAME,
                 ).bind(),
             name=HEAD_SERVER_NAME,
-            route_prefix=f"/{SESSION_ID}"
+            route_prefix=f"/{SESSION_ID.replace('_','-')}"
         )
+
         ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
         self.host["HEAD"] = ref
         print("✅ serve.run() started successfully")
@@ -151,11 +152,11 @@ class RayAdminBase(RayUtils):
             "FIREBASE_RTDB": os.environ.get("FIREBASE_RTDB"),
         }
 
-ws_type = "http"  # or "wss"
+req_type = "http"  # or "wss"
 trgt_vm_ws_port = 8001
 trgt_vm_ip = "127.0.0.1"  # or your VM IP
-trgt_vm_endpoint = f"/{SESSION_ID}/root/"  # Replace with your TEST_ENV_ID
-trgt_vm_domain = f"{ws_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
+trgt_vm_endpoint = f"/{SESSION_ID.replace('_','-')}"  # Replace with your TEST_ENV_ID
+trgt_vm_domain = f"{req_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
 
 vars_dict = {
     "DOMAIN": os.environ.get("DOMAIN"),
