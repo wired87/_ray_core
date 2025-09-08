@@ -37,9 +37,12 @@ class RayUtils:
         all_actors = list_actors(detail=True)
         all_workers = list_workers(detail=True)
 
-        worker_pid_map = {worker.pid: worker for worker in all_workers}
-        struct = {}
+        worker_pid_map = {
+            worker.pid: worker
+            for worker in all_workers
+        }
 
+        struct = {}
         for actor in all_actors:
             # Verarbeite nur Actors, die einen Namen und eine PID haben.
             if actor.name and actor.pid:

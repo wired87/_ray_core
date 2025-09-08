@@ -10,7 +10,7 @@ from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
 from app_utils import SESSION_ID, HEAD_SERVER_NAME
-from cluster_nodes.head import HeadServer
+from cluster_nodes.head import Head
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
 from utils.run_subprocess import exec_cmd
@@ -30,11 +30,13 @@ class RayAdminBase(RayUtils):
 
         print("RayBase initialized")
 
-    def init_ray_process(self):
+    def init_ray_process(self, serve=False):
         self.stop_ray()
         self.start_head()
         self.init_ray()
-        self.init_serve()
+
+        if serve is True:
+            self.init_serve()
 
     def print_actor_states(self):
         self.status()
@@ -115,27 +117,28 @@ class RayAdminBase(RayUtils):
             name,
             attrs
     ):
-        serve.run(
-            HeadServer.options(
+        """serve.run(
+            Head.options(
                 name=HEAD_SERVER_NAME,
                 ).bind(),
             name=HEAD_SERVER_NAME,
             route_prefix=f"/{SESSION_ID.replace('_','-')}"
-        )
+        )"""
+        ref = Head.options(
+            name=HEAD_SERVER_NAME
+        ).remote()
 
-        ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
+        #ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
         self.host["HEAD"] = ref
-        print("✅ serve.run() started successfully")
+        print("✅ Head started successfully")
         return ref
 
     def stop(self):
         ray.shutdown()
         print("🛑 ray shutdown")
 
-
     def status(self):
         exec_cmd(["ray", "status"])
-        
         
     def list_tasks(self):
         exec_cmd(["ray", "list", "tasks"])
@@ -153,9 +156,9 @@ class RayAdminBase(RayUtils):
         }
 
 req_type = "http"  # or "wss"
-trgt_vm_ws_port = 8001
+trgt_vm_ws_port = 8000
 trgt_vm_ip = "127.0.0.1"  # or your VM IP
-trgt_vm_endpoint = f"/{SESSION_ID.replace('_','-')}"  # Replace with your TEST_ENV_ID
+trgt_vm_endpoint = f"root/"  # Replace with your TEST_ENV_ID
 trgt_vm_domain = f"{req_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
 
 vars_dict = {
@@ -189,6 +192,7 @@ state_payload = {  # InboundPayload
 }
 
 def activate():
+    print(f"Requesting trgt: {trgt_vm_domain}")
     response = requests.post(trgt_vm_domain, json=auth_payload)
     print(f"Auth response: {response}-{response.json()}")
     response = requests.post(trgt_vm_domain, json=state_payload)
