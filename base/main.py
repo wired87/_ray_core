@@ -125,7 +125,8 @@ class RayAdminBase(RayUtils):
             route_prefix=f"/{SESSION_ID.replace('_','-')}"
         )"""
         ref = Head.options(
-            name=HEAD_SERVER_NAME
+            name=HEAD_SERVER_NAME,
+            lifetime="detached",
         ).remote()
 
         #ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
@@ -156,7 +157,7 @@ class RayAdminBase(RayUtils):
         }
 
 req_type = "http"  # or "wss"
-trgt_vm_ws_port = 8000
+trgt_vm_ws_port = 8001
 trgt_vm_ip = "127.0.0.1"  # or your VM IP
 trgt_vm_endpoint = f"root/"  # Replace with your TEST_ENV_ID
 trgt_vm_domain = f"{req_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
