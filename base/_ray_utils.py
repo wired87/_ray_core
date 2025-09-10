@@ -14,9 +14,7 @@ class RayUtils:
         if os.path.isfile(session_dir):
             os.remove(session_dir)
             os.makedirs(session_dir, exist_ok=True)
-
-        #os.makedirs(os.path.join(self.ray_assets_dir, "session_latest"), exist_ok=True)
-
+        print("RayUtils initialized")
 
     def _p(self, msg:str, logger=None):
         if logger is not None:
