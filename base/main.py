@@ -178,6 +178,13 @@ auth_payload = {
     }
 }
 
+node_cfg_payload = {
+    "type": "auth",
+    "data": {
+        "key": SESSION_ID
+    }
+}
+
 deploy_payload = {
     "type": "deploy",
     "data": {
