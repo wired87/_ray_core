@@ -2,6 +2,7 @@ import os
 import socket
 import subprocess
 import time
+from pathlib import Path
 
 import ray
 import requests
@@ -12,6 +13,7 @@ from _ray_core.base._ray_utils import RayUtils
 from app_utils import SESSION_ID, HEAD_SERVER_NAME
 from cluster_nodes.head import Head
 from cluster_nodes.server.types import HOST_TYPE
+from utils.file._yaml import load_yaml
 from utils.logger import LOGGER
 from utils.run_subprocess import exec_cmd
 
@@ -26,8 +28,7 @@ class RayAdminBase(RayUtils):
         self.ip = socket.gethostbyname(socket.gethostname())
         self.disable = "0" if OS_NAME == "nt" else "1"
         self.host:HOST_TYPE = {}
-
-
+        self.session_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_latest" if os.name == "nt" else "/tmp/ray/session_latest"
         print("RayBase initialized")
 
     def init_ray_process(self, serve=False):
@@ -37,6 +38,17 @@ class RayAdminBase(RayUtils):
 
         if serve is True:
             self.init_serve()
+
+        # handle session-path
+
+        try:
+            os.remove(self.session_dir)
+            os.makedirs(self.session_dir, exist_ok=True)
+        except Exception as e:
+            print(f"{self.session_dir} already a dir: {e}")
+
+
+
 
     def print_actor_states(self):
         self.status()
@@ -60,6 +72,7 @@ class RayAdminBase(RayUtils):
                         log_level="INFO",
                         additional_log_standard_attrs=['name']
                     ),
+                    #_temp_dir=self.session_dir,
                 )
                 break
             except Exception as e:
@@ -179,9 +192,20 @@ auth_payload = {
 }
 
 node_cfg_payload = {
-    "type": "auth",
+    "type": "node_cfg",
     "data": {
-        "key": SESSION_ID
+        "nid": "ELECTRON_px_0",
+        "cfg": {
+            "blocks": [
+                {
+                    **load_yaml(r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\qf_core_base\stim_cfgs\block_cfg_node.yaml" if os.name == "nt" else "qf_core_base/stim_cfgs/block_cfg_node.yaml"),
+                    "phase": [
+                            load_yaml(r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\qf_core_base\stim_cfgs\phase_node_cfg.yaml" if os.name == "nt" else "qf_core_base/stim_cfgs/phase_node_cfg.yaml")
+                        ]
+                }
+            ]
+        }
+
     }
 }
 
@@ -199,11 +223,11 @@ state_payload = {  # InboundPayload
     "type": "state_change",
 }
 
-def activate():
+def activate(cfg=True):
     print(f"Requesting trgt: {trgt_vm_domain}")
     response = requests.post(trgt_vm_domain, json=auth_payload)
     print(f"Auth response: {response}-{response.json()}")
-    response = requests.post(trgt_vm_domain, json=state_payload)
+    response = requests.post(trgt_vm_domain, json=state_payload if cfg is False else node_cfg_payload)
     print(f"State Change response: {response}-{response.json()}")
 
 

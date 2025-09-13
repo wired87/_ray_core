@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 import ray
 from ray.util.state import list_actors, list_workers
 
@@ -10,10 +12,6 @@ class RayUtils:
     def __init__(self):
         self.ray_assets_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray" if os.name == "nt" else "/tmp/ray/"
         os.makedirs(self.ray_assets_dir, exist_ok=True)
-        session_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_latest" if os.name == "nt" else "/tmp/ray/session_latest"
-        if os.path.isfile(session_dir):
-            os.remove(session_dir)
-            os.makedirs(session_dir, exist_ok=True)
         print("RayUtils initialized")
 
     def _p(self, msg:str, logger=None):
