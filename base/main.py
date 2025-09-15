@@ -28,7 +28,6 @@ class RayAdminBase(RayUtils):
         self.ip = socket.gethostbyname(socket.gethostname())
         self.disable = "0" if OS_NAME == "nt" else "1"
         self.host:HOST_TYPE = {}
-        self.session_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_latest" if os.name == "nt" else "/tmp/ray/session_latest"
         print("RayBase initialized")
 
     def init_ray_process(self, serve=False):
@@ -41,12 +40,15 @@ class RayAdminBase(RayUtils):
 
         # handle session-path
 
+        r"""
         try:
+            self.session_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_latest" if os.name == "nt" else "/tmp/ray/session_latest"
+
             os.remove(self.session_dir)
             os.makedirs(self.session_dir, exist_ok=True)
         except Exception as e:
             print(f"{self.session_dir} already a dir: {e}")
-
+        """
 
 
 
@@ -169,11 +171,19 @@ class RayAdminBase(RayUtils):
             "FIREBASE_RTDB": os.environ.get("FIREBASE_RTDB"),
         }
 
-req_type = "http"  # or "wss"
+testing = False
 trgt_vm_ws_port = 8001
-trgt_vm_ip = "127.0.0.1"  # or your VM IP
-trgt_vm_endpoint = f"root/"  # Replace with your TEST_ENV_ID
-trgt_vm_domain = f"{req_type}://{trgt_vm_ip}:{trgt_vm_ws_port}/{trgt_vm_endpoint}"
+
+if testing is True:
+    req_type = "https"
+    trgt_vm_ip = "cluster.clusterexpress.com"  # or your VM IP
+    trgt_vm_endpoint = "env-rajtigesomnlhfyqzbvx-lfgstdcwivhoamgmntgy/root/"
+else:
+    req_type = "http"  # or "https"
+    trgt_vm_ip = f"127.0.0.1:{trgt_vm_ws_port}"  # or your VM IP
+    trgt_vm_endpoint = f"root/"  # Replace with your TEST_ENV_ID
+
+trgt_vm_domain = f"{req_type}://{trgt_vm_ip}/{trgt_vm_endpoint}"
 
 vars_dict = {
     "DOMAIN": os.environ.get("DOMAIN"),
@@ -224,10 +234,19 @@ state_payload = {  # InboundPayload
 }
 
 def activate(cfg=True):
-    print(f"Requesting trgt: {trgt_vm_domain}")
+    # AUTH PAYLOAD
+    print(f"Requesting trgt: {trgt_vm_domain}->{auth_payload}")
     response = requests.post(trgt_vm_domain, json=auth_payload)
-    print(f"Auth response: {response}-{response.json()}")
-    response = requests.post(trgt_vm_domain, json=state_payload if cfg is False else node_cfg_payload)
+    print(f"Auth response: {response.json()}")
+
+    # AUTH PAYLOAD
+    print(f"Requesting trgt: {trgt_vm_domain}->{node_cfg_payload}")
+    response = requests.post(trgt_vm_domain, json=node_cfg_payload)
+    print(f"State Change response: {response.json()}")
+
+    # STATE CHANGE
+    print(f"Requesting trgt: {trgt_vm_domain}->{state_payload}")
+    response = requests.post(trgt_vm_domain, json=state_payload)
     print(f"State Change response: {response}-{response.json()}")
 
 
