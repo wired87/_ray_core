@@ -10,14 +10,16 @@ from ray import serve
 from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
-from app_utils import SESSION_ID, HEAD_SERVER_NAME
+from app_utils import SESSION_ID, HEAD_SERVER_NAME, ENV_ID, FB_DB_ROOT
 from cluster_nodes.head import Head
 from cluster_nodes.server.types import HOST_TYPE
+from fb_core.real_time_database import FirebaseRTDBManager
 from utils.file._yaml import load_yaml
 from utils.logger import LOGGER
 from utils.run_subprocess import exec_cmd
 
 OS_NAME = os.name
+
 
 class RayAdminBase(RayUtils):
 
@@ -27,7 +29,7 @@ class RayAdminBase(RayUtils):
         self.local_mode = OS_NAME == "nt"
         self.ip = socket.gethostbyname(socket.gethostname())
         self.disable = "0" if OS_NAME == "nt" else "1"
-        self.host:HOST_TYPE = {}
+        self.host: HOST_TYPE = {}
         print("RayBase initialized")
 
     def init_ray_process(self, serve=False):
@@ -50,8 +52,6 @@ class RayAdminBase(RayUtils):
             print(f"{self.session_dir} already a dir: {e}")
         """
 
-
-
     def print_actor_states(self):
         self.status()
         self.list_tasks()
@@ -59,7 +59,7 @@ class RayAdminBase(RayUtils):
         self.timeline()
 
     def init_ray(self, namespace_name=None):
-        #os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
+        # os.environ["RAY_DISABLE_DASHBOARD"] = self.disable
         os.environ["RAY_LOGGING_CONFIG_ENCODING"] = "JSON"
         print("init ray")
         for _ in range(10):
@@ -74,7 +74,7 @@ class RayAdminBase(RayUtils):
                         log_level="INFO",
                         additional_log_standard_attrs=['name']
                     ),
-                    #_temp_dir=self.session_dir,
+                    # _temp_dir=self.session_dir,
                 )
                 break
             except Exception as e:
@@ -82,8 +82,6 @@ class RayAdminBase(RayUtils):
                 time.sleep(1)
 
         LOGGER.info(f"ray initialized {ray.is_initialized()}")
-
-
 
     def start_head(self):
         ray_port = 6379
@@ -98,7 +96,7 @@ class RayAdminBase(RayUtils):
             print(f"error stop: {e}")
 
     def memory(self):
-        #ray memory --stats-only
+        # ray memory --stats-only
         exec_cmd(["ray", "memory", "--stats-only"])
 
     def start_serve(
@@ -117,7 +115,6 @@ class RayAdminBase(RayUtils):
                 print("🔥 Unexpected error in serve.run():", e)
                 time.sleep(2)
 
-
     def init_serve(self):
         http_port = 8001
         serve.start(
@@ -125,7 +122,6 @@ class RayAdminBase(RayUtils):
             detached=True,
             disable_dashboard=os.name == "nt",
         )
-
 
     def create_head_server(
             self,
@@ -144,7 +140,7 @@ class RayAdminBase(RayUtils):
             lifetime="detached",
         ).remote()
 
-        #ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
+        # ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
         self.host["HEAD"] = ref
         print("✅ Head started successfully")
         return ref
@@ -155,13 +151,12 @@ class RayAdminBase(RayUtils):
 
     def status(self):
         exec_cmd(["ray", "status"])
-        
+
     def list_tasks(self):
         exec_cmd(["ray", "list", "tasks"])
 
     def timeline(self):
         ray.timeline(filename="timeline.json")
-
 
     def create_static_docker_env_vars(self):
         return {
@@ -171,13 +166,14 @@ class RayAdminBase(RayUtils):
             "FIREBASE_RTDB": os.environ.get("FIREBASE_RTDB"),
         }
 
+
 testing = False
 trgt_vm_ws_port = 8001
 
 if testing is True:
     req_type = "https"
     trgt_vm_ip = "cluster.clusterexpress.com"  # or your VM IP
-    trgt_vm_endpoint = "env-rajtigesomnlhfyqzbvx-lfgstdcwivhoamgmntgy/root/"
+    trgt_vm_endpoint = f"{ENV_ID}/root/"
 else:
     req_type = "http"  # or "https"
     trgt_vm_ip = f"127.0.0.1:{trgt_vm_ws_port}"  # or your VM IP
@@ -197,25 +193,7 @@ vars_dict = {
 auth_payload = {
     "type": "auth",
     "data": {
-        "key": SESSION_ID
-    }
-}
-
-node_cfg_payload = {
-    "type": "node_cfg",
-    "data": {
-        "nid": "ELECTRON_px_0",
-        "cfg": {
-            "blocks": [
-                {
-                    **load_yaml(r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\qf_core_base\stim_cfgs\block_cfg_node.yaml" if os.name == "nt" else "qf_core_base/stim_cfgs/block_cfg_node.yaml"),
-                    "phase": [
-                            load_yaml(r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\qf_core_base\stim_cfgs\phase_node_cfg.yaml" if os.name == "nt" else "qf_core_base/stim_cfgs/phase_node_cfg.yaml")
-                        ]
-                }
-            ]
-        }
-
+        "key": ENV_ID
     }
 }
 
@@ -233,16 +211,47 @@ state_payload = {  # InboundPayload
     "type": "state_change",
 }
 
+
+def ncfg_process():
+    db_manager = FirebaseRTDBManager()
+    db_root = FB_DB_ROOT
+
+    nid = "ELECTRON_px_0"
+    node_cfg_payload = {
+        "blocks": [
+            {
+                **load_yaml(
+                    r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\qf_core_base\stim_cfgs\block_cfg_node.yaml" if os.name == "nt" else "qf_core_base/stim_cfgs/block_cfg_node.yaml"),
+                "phase": [
+                    load_yaml(
+                        r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\qf_core_base\stim_cfgs\phase_node_cfg.yaml" if os.name == "nt" else "qf_core_base/stim_cfgs/phase_node_cfg.yaml")
+                ]
+            }
+        ]
+    }
+    # Upsert ncfg
+    db_manager.upsert_data(
+        path=f"{db_root}/cfg/node/{nid}",
+        data=node_cfg_payload,
+    )
+
+    # Update global state
+    db_manager.upsert_data(
+        path=f"{db_root}/global_states/",
+        data={
+            "min_node_cfg_created": True
+        },
+    )
+    print("Handled node cfg successfully")
+
+
 def activate(cfg=True):
     # AUTH PAYLOAD
     print(f"Requesting trgt: {trgt_vm_domain}->{auth_payload}")
     response = requests.post(trgt_vm_domain, json=auth_payload)
     print(f"Auth response: {response.json()}")
 
-    # AUTH PAYLOAD
-    print(f"Requesting trgt: {trgt_vm_domain}->{node_cfg_payload}")
-    response = requests.post(trgt_vm_domain, json=node_cfg_payload)
-    print(f"State Change response: {response.json()}")
+    ncfg_process()
 
     # STATE CHANGE
     print(f"Requesting trgt: {trgt_vm_domain}->{state_payload}")
