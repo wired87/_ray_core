@@ -10,7 +10,7 @@ from ray import serve
 from ray.exceptions import RayActorError
 
 from _ray_core.base._ray_utils import RayUtils
-from app_utils import SESSION_ID, HEAD_SERVER_NAME, ENV_ID, FB_DB_ROOT
+from app_utils import HEAD_SERVER_NAME, ENV_ID, FB_DB_ROOT
 from cluster_nodes.head import Head
 from cluster_nodes.server.types import HOST_TYPE
 from fb_core.real_time_database import FirebaseRTDBManager
@@ -85,9 +85,19 @@ class RayAdminBase(RayUtils):
 
     def start_head(self):
         ray_port = 6379
-        cmd = ["ray", "start", "--head", f"--port={ray_port}", f"--temp-dir={self.ray_assets_dir}"]
-        exec_cmd(cmd)
-        print("Started Head")
+        _try = 0
+        max_tries = 10
+        for i in range(max_tries):
+            try:
+                cmd = ["ray", "start", "--head", f"--port={ray_port}", f"--temp-dir={self.ray_assets_dir}"]
+                result = exec_cmd(cmd)
+                if result is not None:
+                    print("Started Head")
+                    return
+            except Exception as e:
+                print(f"error start head: {e}")
+            time.sleep(5)
+        print("Head couldn be started")
 
     def stop_ray(self):
         try:
