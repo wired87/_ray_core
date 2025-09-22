@@ -88,6 +88,7 @@ class RayAdminBase(RayUtils):
         _try = 0
         max_tries = 10
         for i in range(max_tries):
+            print(f"try {i} to start head")
             try:
                 cmd = ["ray", "start", "--head", f"--port={ray_port}", f"--temp-dir={self.ray_assets_dir}"]
                 result = exec_cmd(cmd)
@@ -101,7 +102,8 @@ class RayAdminBase(RayUtils):
 
     def stop_ray(self):
         try:
-            exec_cmd(["ray", "stop", "--force"])
+            print(exec_cmd(["ray", "stop", "--force"]))
+            print("Stopped existing ray processes")
         except Exception as e:
             print(f"error stop: {e}")
 

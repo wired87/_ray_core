@@ -30,7 +30,7 @@ class RayValidator:
                 )
             return result
         except Exception as e:
-            print(f"Err @ call: {e}")
+            print(f"Err @ call: {e}", self.host, self.g_utils)
 
     def call_local(self, method_name, *args, **kwargs):
         #print("self.gggggggggg_utils", self.g_utils)
