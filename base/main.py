@@ -241,6 +241,7 @@ def ncfg_process():
             }
         ]
     }
+
     # Upsert ncfg
     db_manager.upsert_data(
         path=f"{db_root}/cfg/node/{nid}",
