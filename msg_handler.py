@@ -23,7 +23,7 @@ class MessageHandler:
             f"{self.g.database}/{attrs.get('type')}/{nid}" for nid, attrs in self.g.G.nodes(data=True) if attrs.get("type") in ALL_SUBS + "ENV"
         ]
 
-        self.loop = asyncio.get_event_loop
+
 
 
 
