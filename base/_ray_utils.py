@@ -49,6 +49,7 @@ class RayUtils:
                 if corresponding_worker:
                     if id_map is not None and len(id_map):
                         aname = actor.name
+                        # check name
                         if aname in id_map or HEAD_SERVER_NAME in aname:
                             #print(f"Include {actor.name}")
                             struct[actor.name] = {
