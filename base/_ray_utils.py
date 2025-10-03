@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 
 import ray
+from ray._private.ray_perf import Actor
+from ray.actor import ActorHandle
 from ray.util.state import list_actors, list_workers
 
 from app_utils import HEAD_SERVER_NAME
@@ -27,6 +29,15 @@ class RayUtils:
             for actor in actors:
                 print(actor)  # Zeigt Name oder Handle
         return actors
+
+
+    def get_all_actor_refs(self) -> dict[str, ActorHandle]:
+        all_actors = list_actors(detail=True)
+        refs = {}
+        for actor in all_actors:
+            aname = actor.name
+            refs[aname] = ray.get_actor(aname)
+        return refs
 
 
     def get_ray_node_infos(self, id_map=None):

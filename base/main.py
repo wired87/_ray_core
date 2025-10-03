@@ -97,6 +97,7 @@ class RayAdminBase(RayUtils):
                     return
             except Exception as e:
                 print(f"error start head: {e}")
+                self.stop_ray()
             time.sleep(5)
         print("Head couldn be started")
 
@@ -135,27 +136,7 @@ class RayAdminBase(RayUtils):
             disable_dashboard=os.name == "nt",
         )
 
-    def create_head_server(
-            self,
-            name,
-            attrs
-    ):
-        """serve.run(
-            Head.options(
-                name=HEAD_SERVER_NAME,
-                ).bind(),
-            name=HEAD_SERVER_NAME,
-            route_prefix=f"/{SESSION_ID.replace('_','-')}"
-        )"""
-        ref = Head.options(
-            name=HEAD_SERVER_NAME,
-            lifetime="detached",
-        ).remote()
 
-        # ref = serve.get_deployment_handle(HEAD_SERVER_NAME, app_name=HEAD_SERVER_NAME)
-        self.host["HEAD"] = ref
-        print("✅ Head started successfully")
-        return ref
 
     def stop(self):
         ray.shutdown()
