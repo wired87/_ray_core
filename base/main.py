@@ -40,8 +40,6 @@ class RayAdminBase(RayUtils):
         if serve is True:
             self.init_serve()
 
-        # handle session-path
-
         r"""
         try:
             self.session_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_latest" if os.name == "nt" else "/tmp/ray/session_latest"

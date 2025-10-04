@@ -25,12 +25,11 @@ class GlobsMaster:
             run=True
         )
         self.create()
-
+        print("GlobsMaster initiaized")
+    
     def create(self):
-        for actor_id in self.resources:
-            self.create_worker(
-                name=actor_id,
-            )
+        #for actor_id in self.resources:
+        self.create_globs()
 
         self.await_alive()
         print("GlobMaster Creation procedure finished")
@@ -42,16 +41,19 @@ class GlobsMaster:
         print("Exit CloudCreator...")
         ray.actor.exit_actor()
 
-    def create_worker(self, name):
-        print(f"Create worker {name}")
+    def create_globs(self):
+        print(f"Create GLOBS")
         retry = 3
-        for i in range(retry):
-            try:
-                # Remove __px_id form name (if)
-                ref = self.available_actors[name](name)
-                return ref
-            except Exception as e:
-                print(f"Err: {e}")
+        for name, create_runnable in self.available_actors.items():
+            for i in range(retry):
+                print(f"Create: {name} \nTry: {i}")
+                try:
+                    # Remove __px_id form name (if)
+                    ref = create_runnable(name)
+                    return ref
+                except Exception as e:
+                    print(f"Err: {e}")
+        print("GLOB creation finished")
 
     def create_utils_worker(self, name):
         ref = UtilsWorker.options(
