@@ -2,11 +2,12 @@ import os
 from pathlib import Path
 
 import ray
+from ray import serve
 from ray._private.ray_perf import Actor
 from ray.actor import ActorHandle
 from ray.util.state import list_actors, list_workers
 
-from app_utils import HEAD_SERVER_NAME
+from app_utils import HEAD_SERVER_NAME, ENV_ID
 
 
 class RayUtils:
@@ -36,7 +37,11 @@ class RayUtils:
         refs = {}
         for actor in all_actors:
             aname = actor.name
-            refs[aname] = ray.get_actor(aname)
+            try:
+                refs[aname] = ray.get_actor(aname)
+            except Exception as e:
+
+                print(f"Err get_all_actor_refs: {e}")
         return refs
 
 
