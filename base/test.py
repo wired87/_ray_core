@@ -4,7 +4,7 @@ import requests
 
 from app_utils import ENV_ID, FB_DB_ROOT
 
-from fb_core.real_time_database import FirebaseRTDBManager
+from fb_core.real_time_database import FBRTDBMgr
 from utils.file._yaml import load_yaml
 
 
@@ -54,7 +54,7 @@ state_payload = {  # InboundPayload
 
 
 def ncfg_process():
-    db_manager = FirebaseRTDBManager()
+    db_manager = FBRTDBMgr()
     db_root = FB_DB_ROOT
 
     nid = "ELECTRON_px_0"

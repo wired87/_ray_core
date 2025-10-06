@@ -1,12 +1,13 @@
 import random
-
 import ray
 
 class RaySetup:
+
     """
     Kapselt die Initialisierung von Ray, die Graphenerstellung,
     die Actor-Verwaltung und den Simulationsablauf.
     """
+
     def __init__(self, g, num_cpus: int = None):
         self.g = g
         self.num_cpus = num_cpus
@@ -21,6 +22,7 @@ class RaySetup:
                 ray.init(num_cpus=self.num_cpus)
             else:
                 #_ray_core.init()
+                pass
             print(f"Ray Dashboard: {ray.get_dashboard_url()}")
             print("Ray initialized.")
         else:
