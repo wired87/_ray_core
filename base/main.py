@@ -6,6 +6,7 @@ import ray
 from ray import serve
 from ray.exceptions import RayActorError
 from _ray_core.base._ray_utils import RayUtils
+from cluster_nodes.cluster_utils.base import BaseActor
 
 from cluster_nodes.server.types import HOST_TYPE
 from utils.logger import LOGGER
@@ -13,7 +14,7 @@ from utils.run_subprocess import exec_cmd
 
 OS_NAME = os.name
 
-class RayAdminBase(RayUtils):
+class RayAdminBase(RayUtils, BaseActor):
 
     def __init__(self):
         super().__init__()
@@ -25,8 +26,9 @@ class RayAdminBase(RayUtils):
         print("RayBase initialized")
 
     def init_ray_process(self, serve=False):
+        print("================== INIT RAY PROCESS ==================")
         self.stop_ray()
-        self.start_head()
+        #self.start_head()
         self.init_ray()
 
         if serve is True:
@@ -58,13 +60,13 @@ class RayAdminBase(RayUtils):
                     ignore_reinit_error=True,
                     local_mode=False,
                     include_dashboard=True,
-                    address=f"auto",
+                    #address=f"auto",
                     logging_config=ray.LoggingConfig(
                         encoding="JSON",
                         log_level="INFO",
                         additional_log_standard_attrs=['name']
                     ),
-                    # _temp_dir=self.session_dir,
+                    _temp_dir=self.ray_assets_dir,
                 )
                 break
             except Exception as e:

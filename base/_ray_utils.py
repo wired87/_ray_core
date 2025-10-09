@@ -13,7 +13,7 @@ from app_utils import HEAD_SERVER_NAME, ENV_ID
 class RayUtils:
 
     def __init__(self):
-        self.ray_assets_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray" if os.name == "nt" else "/tmp/ray/"
+        self.ray_assets_dir = r"C:\Users\bestb\Desktop\qfs\tmp\ray" if os.name == "nt" else "/tmp/ray/"
         os.makedirs(self.ray_assets_dir, exist_ok=True)
         print("RayUtils initialized")
 
