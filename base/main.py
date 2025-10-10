@@ -34,15 +34,6 @@ class RayAdminBase(RayUtils, BaseActor):
         if serve is True:
             self.init_serve()
 
-        r"""
-        try:
-            self.session_dir = r"C:\Users\wired\OneDrive\Desktop\Projects\qfs\tmp\ray\session_latest" if os.name == "nt" else "/tmp/ray/session_latest"
-
-            os.remove(self.session_dir)
-            os.makedirs(self.session_dir, exist_ok=True)
-        except Exception as e:
-            print(f"{self.session_dir} already a dir: {e}")
-        """
 
     def print_actor_states(self):
         self.status()
@@ -121,13 +112,12 @@ class RayAdminBase(RayUtils, BaseActor):
                 time.sleep(2)
 
     def init_serve(self):
-        http_port = 8001
+        http_port = 8000
         serve.start(
             http_options={"host": "0.0.0.0", "port": http_port},
             detached=True,
             disable_dashboard=os.name == "nt",
         )
-
 
 
     def stop(self):

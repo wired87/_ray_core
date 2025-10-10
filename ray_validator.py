@@ -6,8 +6,8 @@ class RayValidator:
     def __init__(self, host=None, g_utils=None, g=None):
         self.host = host
         if self.host is None:
-            from qf_core_base.calculator.calculator import Calculator
-            from qf_core_base.qf_utils.qf_utils import QFUtils
+            from qf_utils.calculator.calculator import Calculator
+            from qf_utils.qf_utils import QFUtils
             self.g_utils = g or g_utils
             self.qfu = QFUtils(
                 self.g_utils,
@@ -15,25 +15,22 @@ class RayValidator:
             self.calculator = Calculator()
 
     def call(self, method_name, *args, **kwargs):
-        try:
-            if self.host is not None:
-                result = ray.get(
-                    self.host["UTILS_WORKER"].call.remote(
-                        method_name=method_name,
-                        *args,
-                        **kwargs
-                    )
+        if self.host is not None:
+            result = ray.get(
+                self.host["utils_worker"].call.remote(
+                    method_name=method_name,
+                    *args,
+                    **kwargs
                 )
-            else:
-                result = self.call_local(
-                    method_name, *args, **kwargs
-                )
-            return result
-        except Exception as e:
-            print(f"Err @ call: {e}", self.host, self.g_utils)
+            )
+        else:
+            result = self.call_local(
+                method_name, *args, **kwargs
+            )
+        return result
 
     def call_local(self, method_name, *args, **kwargs):
-        #print("self.gggggggggg_utils", self.g_utils)
+        print("self.gggggggggg_utils", self.g_utils)
         if hasattr(self.g_utils, method_name):
             return getattr(self.g_utils, method_name)(*args, **kwargs)
         elif hasattr(self.qfu, method_name):
@@ -46,7 +43,7 @@ class RayValidator:
     def get_neighbor(self, nid, trgt_rel=None, trgt_type="PHI", single=True):
         if self.host is not None:
             if single is True:
-                return ray.get(self.host["UTILS_WORKER"].get_neighbor.remote(
+                return ray.get(self.host["utils_worker"].get_neighbor.remote(
                     just_id=True,
                     single=single
                 ))
@@ -55,17 +52,17 @@ class RayValidator:
             if single is True:
                 return self.g_utils.get_single_neighbor_nx(nid, trgt_type)
             else:
-                return self.g_utils.get_neighbor_list_rel(nid, trgt_rel=trgt_rel)
+                return self.g_utils.get_neighbor_list(nid, trgt_rel=trgt_rel)
 
     def get_node(self, nid):
         if self.host is None:
             return self.g_utils.G.nodes[nid]
         else:
-            ray.get(self.host["UTILS_WORKER"].get_node.remote(nid))
+            ray.get(self.host["utils_worker"].get_node.remote(nid))
 
     def update_edge(self, src, trgt, attrs, rels):
         if self.host is not None:
-            ray.get(self.host["UTILS_WORKER"].update_edge.remote(
+            ray.get(self.host["utils_worker"].update_edge.remote(
                 src,
                 trgt,
                 attrs,

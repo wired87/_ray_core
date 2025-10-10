@@ -9,7 +9,7 @@ from utils.file._yaml import load_yaml
 
 
 testing = False
-trgt_vm_ws_port = 8001
+trgt_vm_ws_port = 8000
 
 if testing is True:
     req_type = "https"
