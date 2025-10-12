@@ -28,9 +28,8 @@ class RayAdminBase(RayUtils, BaseActor):
     def init_ray_process(self, serve=False):
         print("================== INIT RAY PROCESS ==================")
         self.stop_ray()
-        #self.start_head()
+        self.start_head()
         self.init_ray()
-
         if serve is True:
             self.init_serve()
 
@@ -55,7 +54,6 @@ class RayAdminBase(RayUtils, BaseActor):
                     logging_config=ray.LoggingConfig(
                         encoding="JSON",
                         log_level="INFO",
-                        additional_log_standard_attrs=['name']
                     ),
                     _temp_dir=self.ray_assets_dir,
                 )
@@ -112,9 +110,12 @@ class RayAdminBase(RayUtils, BaseActor):
                 time.sleep(2)
 
     def init_serve(self):
-        http_port = 8000
+        http_port = 8001
         serve.start(
-            http_options={"host": "0.0.0.0", "port": http_port},
+            http_options={
+                "host": "0.0.0.0",
+                "port": http_port
+            },
             detached=True,
             disable_dashboard=os.name == "nt",
         )
