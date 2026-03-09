@@ -5,7 +5,7 @@ import time
 import ray
 from ray import serve
 from ray.exceptions import RayActorError
-from _ray_core.base._ray_utils import RayUtils
+from _admin._ray_core.base._ray_utils import RayUtils
 from cluster_nodes.cluster_utils.base import BaseActor
 
 from cluster_nodes.server.types import HOST_TYPE
